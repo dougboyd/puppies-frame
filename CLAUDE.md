@@ -9,7 +9,7 @@ An iPad app that transforms an old iPad into a dedicated digital picture frame.
 
 ### Core Features
 - **Kiosk/Locked Mode**: Locks the iPad into picture frame mode (via Guided Access)
-- **Azure Blob Storage**: Fetches photos from Azure container
+- **Local Photos**: All photos bundled in the app - works completely offline
 - **Random Display**: Shows pictures in random order with shuffle on loop
 - **Full-screen Display**: Optimized for photo viewing with smooth transitions
 
@@ -25,17 +25,11 @@ Due to iOS 9 limitations, we're building a web app that runs in Safari with Guid
 - **Frontend**: Simple HTML/CSS/JS (must be iOS 9 Safari compatible)
 - **Hosting**: GitHub Pages
 - **Custom Domain**: puppies.dougboyd.com.au
-- **Cloud Storage**: Azure Blob Storage
+- **Photos**: Bundled locally in `photos/` folder (no network required)
 - **Lock-down**: Safari full-screen + Guided Access
-
-### Azure Resources
-- **Storage Account**: `puppiesframe`
-- **Container**: `photos` (public read + list access)
-- **CORS**: Enabled for all origins
 
 ### URLs
 - **Web App**: https://puppies.dougboyd.com.au
-- **Photo Storage**: https://puppiesframe.blob.core.windows.net/photos/
 - **GitHub Repo**: https://github.com/dougboyd/puppies-frame
 
 ### Features
@@ -43,7 +37,7 @@ Due to iOS 9 limitations, we're building a web app that runs in Safari with Guid
 - Random photo selection (reshuffles on each loop)
 - 10-second interval between photos (configurable in index.html)
 - 1.5-second fade transitions
-- Tap to retry on error
+- Works completely offline after initial load
 - iOS 9 Safari compatible (no ES6 features)
 
 ---
@@ -56,21 +50,16 @@ Add a CNAME record for your domain:
 puppies.dougboyd.com.au -> dougboyd.github.io
 ```
 
-### Uploading Photos
+### Adding/Updating Photos
 ```bash
-# Upload a single photo
-az storage blob upload \
-  --account-name puppiesframe \
-  --container-name photos \
-  --file /path/to/photo.jpg \
-  --name photo.jpg
+# 1. Copy photos into the photos/ folder
+cp ~/path/to/photos/*.jpg photos/
 
-# Upload all photos from a folder
-az storage blob upload-batch \
-  --account-name puppiesframe \
-  --destination photos \
-  --source /path/to/photos/folder \
-  --pattern "*.jpg"
+# 2. Generate the manifest
+./generate-manifest.sh
+
+# 3. Commit and push
+git add -A && git commit -m "Update photos" && git push
 ```
 
 ### iPad Setup (Guided Access)
@@ -80,3 +69,17 @@ az storage blob upload-batch \
 4. Enable Guided Access: Settings > Accessibility > Guided Access > On
 5. Set a passcode
 6. In the app, triple-click Home button > Start Guided Access
+
+---
+
+## File Structure
+```
+dogFrame/
+├── index.html           # Main web app
+├── manifest.js          # Auto-generated photo list
+├── generate-manifest.sh # Script to update manifest
+├── photos/              # Put your photos here
+│   └── *.jpg, *.png, etc.
+├── CNAME                # Custom domain config
+└── CLAUDE.md            # This file
+```
