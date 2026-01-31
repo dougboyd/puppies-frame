@@ -5,36 +5,29 @@ My name is **Claudia**, and I'm helping Doug with this project.
 
 ## Project: dogFrame
 
-An iPad app that transforms an old iPad into a dedicated digital picture frame.
+An iPad picture frame app for Doug's daughter's puppies, Ash & Rosie.
 
 ### Core Features
 - **Kiosk/Locked Mode**: Locks the iPad into picture frame mode (via Guided Access)
-- **Azure Blob Storage**: Fetches photos remotely - add/remove photos anytime
+- **Local Photo Serving**: Photos served from a MacBook Air via Cloudflare Tunnel
 - **Random Display**: Shows pictures in random order with shuffle on loop
 - **Full-screen Display**: Optimized for photo viewing with smooth transitions
+- **Remote Management**: Add/remove photos by dropping files on the MacBook Air
 
 ### Target Device
 - **iPad 2** (Wi-Fi, A1395)
 - **iOS 9.3.5** (max supported)
 - Serial: DLXGG3V8DFHW
 
-### Approach: Web-Based Picture Frame
-Due to iOS 9 limitations, we're building a web app that runs in Safari with Guided Access for kiosk lock-down.
-
 ### Architecture
+- **Server**: Python 3 web server on MacBook Air (macOS 14.8.3)
+- **Tunnel**: Cloudflare Tunnel → `ashandrosie.dougboyd.com.au`
 - **Frontend**: Simple HTML/CSS/JS (iOS 9 Safari compatible)
-- **Hosting**: GitHub Pages
-- **Photo Storage**: Azure Blob Storage (remote, manageable)
+- **Photos**: Local directory on MacBook Air (`~/dogframe/photos/`)
 - **Lock-down**: Safari full-screen + Guided Access
 
-### Azure Resources
-- **Storage Account**: `puppiesframe`
-- **Container**: `photos` (public read + list access)
-- **CORS**: Enabled for all origins
-
 ### URLs
-- **Web App**: https://dougboyd.github.io/puppies-frame
-- **Photo Storage**: https://puppiesframe.blob.core.windows.net/photos/
+- **Web App**: https://ashandrosie.dougboyd.com.au
 - **GitHub Repo**: https://github.com/dougboyd/puppies-frame
 
 ### Features
@@ -43,59 +36,96 @@ Due to iOS 9 limitations, we're building a web app that runs in Safari with Guid
 - 10-second interval between photos (configurable in index.html)
 - 1.5-second fade transitions
 - Tap to retry on error
+- Auto-detects new photos (no restart needed)
 - iOS 9 Safari compatible (no ES6 features)
 
 ---
 
-## Managing Photos
+## MacBook Air Setup (One-time)
 
-### Upload photos
+### Prerequisites
+- macOS 14+ with Python 3
+- `cloudflared` installed (`brew install cloudflare/cloudflare/cloudflared`)
+- Cloudflare account with `dougboyd.com.au` domain
+- `cloudflared tunnel login` completed
+
+### Install
 ```bash
-# Single photo
-az storage blob upload \
-  --account-name puppiesframe \
-  --container-name photos \
-  --file /path/to/photo.jpg \
-  --name photo.jpg
+# Clone the repo
+git clone https://github.com/dougboyd/puppies-frame.git
+cd puppies-frame
 
-# Entire folder
-az storage blob upload-batch \
-  --account-name puppiesframe \
-  --destination photos \
-  --source /path/to/folder \
-  --pattern "*.jpg"
+# Run setup (installs server + Cloudflare Tunnel as launchd services)
+./setup.sh
 ```
 
-### List photos
-```bash
-az storage blob list \
-  --account-name puppiesframe \
-  --container-name photos \
-  --query "[].name" -o tsv
-```
+This will:
+1. Install the web server to `~/dogframe/`
+2. Create and configure a Cloudflare Tunnel
+3. Set up both services to auto-start on boot
 
-### Delete a photo
+### Managing Photos
 ```bash
-az storage blob delete \
-  --account-name puppiesframe \
-  --container-name photos \
-  --name photo.jpg
-```
+# Add photos - just copy to the photos directory
+cp ~/path/to/photos/*.jpg ~/dogframe/photos/
 
-### Delete all photos
+# Remove a photo
+rm ~/dogframe/photos/photo.jpg
+
+# List photos
+ls ~/dogframe/photos/
+```
+No restart needed - the server picks up changes automatically.
+
+### Service Management
 ```bash
-az storage blob delete-batch \
-  --account-name puppiesframe \
-  --source photos
+# Check server status
+curl http://localhost:8080/api/photos
+
+# View logs
+tail -f ~/dogframe/logs/server.log
+tail -f ~/dogframe/logs/tunnel.log
+
+# Restart server
+launchctl unload ~/Library/LaunchAgents/com.dougboyd.dogframe.plist
+launchctl load ~/Library/LaunchAgents/com.dougboyd.dogframe.plist
+
+# Restart tunnel
+launchctl unload ~/Library/LaunchAgents/com.dougboyd.dogframe-tunnel.plist
+launchctl load ~/Library/LaunchAgents/com.dougboyd.dogframe-tunnel.plist
 ```
 
 ---
 
 ## iPad Setup (Guided Access)
 1. Connect iPad to WiFi
-2. Open Safari → go to https://dougboyd.github.io/puppies-frame
+2. Open Safari → go to https://ashandrosie.dougboyd.com.au
 3. Tap **Share** → **Add to Home Screen** → **Add**
 4. Open the home screen icon (runs in full-screen mode)
 5. Enable Guided Access: Settings → Accessibility → Guided Access → On
 6. Set a passcode
 7. In the app, triple-click Home button → Start Guided Access
+
+---
+
+## File Structure
+```
+dogFrame/
+├── index.html                    # Web app (served to iPad)
+├── server.py                     # Python web server
+├── setup.sh                      # One-time setup script
+├── com.dougboyd.dogframe.plist   # launchd service config
+├── .gitignore
+└── CLAUDE.md
+```
+
+Installed to `~/dogframe/` on the MacBook Air:
+```
+~/dogframe/
+├── index.html
+├── server.py
+├── photos/          # Drop photos here
+└── logs/
+    ├── server.log
+    └── tunnel.log
+```
