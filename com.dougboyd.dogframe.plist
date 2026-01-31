@@ -7,6 +7,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/usr/bin/python3</string>
+        <string>-u</string>
         <string>server.py</string>
     </array>
     <key>WorkingDirectory</key>

@@ -85,6 +85,7 @@
             var currentIndex = -1;
             var currentSlide = 1;
             var slideTimer = null;
+            var PRELOAD_DEPTH = 3;
 
             function shuffle(array) {
                 var i, j, temp;
@@ -145,15 +146,19 @@
                 var nextEl = document.getElementById('slide' + nextSlide);
                 var currentEl = document.getElementById('slide' + currentSlide);
 
-                nextEl.style.backgroundImage = 'url(' + url + ')';
-                nextEl.className = 'slide active';
-                currentEl.className = 'slide';
-                currentSlide = nextSlide;
+                preloadImage(url, function() {
+                    nextEl.style.backgroundImage = 'url(' + url + ')';
+                    nextEl.className = 'slide active';
+                    currentEl.className = 'slide';
+                    currentSlide = nextSlide;
 
-                var preloadIndex = (currentIndex + 1) % photos.length;
-                preloadImage(photos[preloadIndex], null);
+                    for (var p = 1; p <= PRELOAD_DEPTH; p++) {
+                        var preloadIndex = (currentIndex + p) % photos.length;
+                        preloadImage(photos[preloadIndex], null);
+                    }
 
-                slideTimer = setTimeout(showNextPhoto, CONFIG.slideInterval);
+                    slideTimer = setTimeout(showNextPhoto, CONFIG.slideInterval);
+                });
             }
 
             function showError(message) {
