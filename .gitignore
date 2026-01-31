@@ -2,4 +2,3 @@
 *.log
 .env
 logs/
-photos/
