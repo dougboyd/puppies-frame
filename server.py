@@ -41,7 +41,10 @@ class DogFrameHandler(SimpleHTTPRequestHandler):
         self.wfile.write(json.dumps(photos).encode())
 
     def log_message(self, format, *args):
-        print("[%s] %s" % (self.log_date_time_string(), format % args))
+        client_ip = self.headers.get("CF-Connecting-IP", self.client_address[0])
+        user_agent = self.headers.get("User-Agent", "-")
+        print("[%s] %s %s \"%s\"" % (
+            self.log_date_time_string(), client_ip, format % args, user_agent))
 
 
 def main():
